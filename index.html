@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrammarMafia</title>
+<style>
+  :root{
+    --red:#e5484d;
+    --red-soft:rgba(229,72,77,.15);
+    --blue:#3b82f6;
+    --blue-soft:rgba(59,130,246,.15);
+    --card:#1b2138;
+    --line:rgba(255,255,255,.10);
+    --text:#eef1ff;
+    --muted:#98a2c8;
+    --good:#2ecc71;
+    --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',system-ui,-apple-system,Tahoma,sans-serif;
+    background:radial-gradient(circle at 50% 0%, #222a4d 0%, #0a0d18 65%);
+    color:var(--text);
+    padding:16px;
+    min-height:100vh;
+  }
+  .app{max-width:1000px;margin:0 auto;}
+  .hidden{display:none !important;}
+
+  h1.logo{
+    font-size:2.2rem;text-align:center;margin:10px 0 2px;letter-spacing:1px;
+  }
+  h1.logo span{color:var(--red);}
+  .sub{text-align:center;color:var(--muted);margin:0 0 20px;font-size:.95rem;}
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:18px;
+    margin-bottom:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .panel h3{margin:0 0 12px;font-size:1.05rem;}
+
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;font-size:.9rem;color:var(--muted);}
+  .field input{
+    background:#0e1224;border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;color:var(--text);font-size:1rem;outline:none;width:100%;
+    font-family:inherit;
+  }
+  .field input:focus{border-color:var(--blue);}
+
+  .name-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:14px;}
+
+  .btn{
+    font-family:inherit;font-size:1rem;cursor:pointer;
+    background:#252c48;color:var(--text);border:1px solid var(--line);
+    border-radius:11px;padding:12px 18px;transition:.15s;
+  }
+  .btn:hover{background:#313a5e;}
+  .btn:active{transform:scale(.98);}
+  .btn.primary{background:linear-gradient(135deg,#3b82f6,#6d5efc);border:none;font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.1);}
+  .btn.ghost{background:transparent;}
+  .btn.wide{width:100%;}
+  .btn.red{background:linear-gradient(135deg,#e5484d,#a3282c);border:none;}
+  .btn.blue{background:linear-gradient(135deg,#3b82f6,#1d4ed8);border:none;}
+
+  .hint{color:var(--muted);font-size:.85rem;margin:0 0 12px;}
+  .error{color:var(--bad);text-align:center;font-weight:600;min-height:22px;margin-top:10px;}
+
+  /* ---------- Reveal ---------- */
+  .reveal-wrap{text-align:center;}
+  .reveal-progress{color:var(--muted);font-size:.85rem;margin-bottom:14px;letter-spacing:1px;}
+  .reveal-prompt{
+    font-size:1.15rem;line-height:1.7;max-width:620px;margin:0 auto 22px;
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;
+  }
+  .reveal-prompt b{color:#ffd166;}
+
+  .id-card{
+    max-width:420px;margin:0 auto;background:var(--card);
+    border:2px solid var(--line);border-radius:18px;padding:24px;
+    box-shadow:0 16px 40px rgba(0,0,0,.5);
+  }
+  .id-card .card-name{font-size:1.6rem;font-weight:700;margin:0 0 6px;}
+  .card-team{font-size:1.2rem;font-weight:800;letter-spacing:2px;margin:0 0 14px;}
+  .card-team.red{color:var(--red);}
+  .card-team.blue{color:var(--blue);}
+  .card-role{font-size:1.05rem;font-weight:800;letter-spacing:1.5px;margin:0 0 10px;}
+  .card-role.traitor{color:var(--red);}
+  .card-role.loyal{color:var(--good);}
+  .card-desc{color:var(--muted);font-size:.9rem;line-height:1.6;margin:0;}
+
+  /* ---------- Game ---------- */
+  .topbar{
+    display:flex;gap:10px;justify-content:space-between;align-items:center;
+    margin-bottom:14px;flex-wrap:wrap;
+  }
+  .round-box{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:10px 16px;font-weight:700;letter-spacing:1px;
+  }
+  .score-box{
+    border-radius:12px;padding:10px 20px;font-weight:800;letter-spacing:1px;
+    border:1px solid var(--line);min-width:110px;text-align:center;
+  }
+  .score-box.red{background:var(--red-soft);color:#ff9a9d;}
+  .score-box.blue{background:var(--blue-soft);color:#9ec2ff;}
+
+  .teams{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+  @media(max-width:640px){.teams{grid-template-columns:1fr;}}
+
+  .team-card{
+    background:var(--card);border:2px solid var(--line);border-radius:16px;padding:14px;
+    transition:.2s;
+  }
+  .team-card.red.active{border-color:var(--red);box-shadow:0 0 0 3px var(--red-soft);}
+  .team-card.blue.active{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+  .team-card h3{margin:0 0 10px;font-size:1rem;letter-spacing:1.5px;}
+  .team-card.red h3{color:#ff8b8f;}
+  .team-card.blue h3{color:#8fb8ff;}
+  .team-card ul{list-style:none;margin:0;padding:0;}
+  .team-card li{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.04);
+    margin-bottom:7px;font-size:.95rem;
+  }
+  .team-card li.out{opacity:.4;text-decoration:line-through;}
+  .tag{
+    font-size:.65rem;background:var(--bad);color:#fff;padding:2px 7px;
+    border-radius:20px;font-weight:800;letter-spacing:1px;
+  }
+
+  .action-area{display:flex;flex-direction:column;gap:14px;}
+
+  .turn-banner{
+    border-radius:14px;padding:16px;text-align:center;font-weight:800;
+    letter-spacing:1.5px;font-size:1.05rem;line-height:1.6;
+  }
+  .turn-banner small{display:block;font-weight:500;letter-spacing:0;opacity:.85;font-size:.85rem;margin-top:5px;}
+  .turn-banner.red{background:var(--red-soft);border:1px solid var(--red);color:#ffb3b5;}
+  .turn-banner.blue{background:var(--blue-soft);border:1px solid var(--blue);color:#a9c8ff;}
+
+  .question-box{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;
+  }
+  .q-text{font-size:1.15rem;line-height:1.6;margin:0 0 16px;}
+  .options{display:flex;flex-direction:column;gap:10px;}
+  .option{text-align:left;width:100%;}
+  .option:hover{border-color:var(--blue);}
+
+  .result{
+    border-radius:14px;padding:18px;font-size:1.05rem;line-height:1.7;text-align:center;
+  }
+  .result.good{background:rgba(46,204,113,.14);border:1px solid var(--good);color:#b6f5d1;}
+  .result.bad{background:rgba(255,107,107,.14);border:1px solid var(--bad);color:#ffc4c4;}
+
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+  .row .btn{flex:1;min-width:120px;}
+
+  .guess-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px;}
+  .guess-btn{display:flex;flex-direction:column;gap:3px;align-items:center;padding:14px 10px;}
+  .guess-btn small{font-size:.7rem;opacity:.75;letter-spacing:1px;}
+  .guess-btn.red{border-color:var(--red);}
+  .guess-btn.blue{border-color:var(--blue);}
+
+  /* ---------- Overlay ---------- */
+  #overlay{
+    position:fixed;inset:0;background:rgba(6,8,16,.92);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .overlay-card{
+    background:var(--card);border:1px solid var(--line);border-radius:20px;
+    padding:36px 28px;text-align:center;max-width:520px;width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+  }
+  .overlay-card h2{font-size:1.8rem;margin:0 0 12px;letter-spacing:2px;}
+  .overlay-card h2.red{color:var(--red);}
+  .overlay-card h2.blue{color:var(--blue);}
+  .overlay-card h2.tie{color:#ffd166;}
+  .final-scores{display:flex;gap:14px;justify-content:center;margin:20px 0 26px;}
+  .final-scores div{
+    flex:1;border-radius:14px;padding:16px;font-weight:800;letter-spacing:1px;
+  }
+  .final-scores .red{background:var(--red-soft);color:#ff9a9d;}
+  .final-scores .blue{background:var(--blue-soft);color:#9ec2ff;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SETUP ============ -->
+  <section id="setupScreen">
+    <h1 class="logo">Grammar<span>Mafia</span></h1>
+    <p class="sub">Find the traitor. Answer the grammar. Win the game.</p>
+
+    <div class="panel">
+      <h3>Step 1 — Players</h3>
+      <label class="field">
+        <span>Total number of players</span>
+        <input id="playerCount" type="number" min="4" max="24" step="1" value="8">
+      </label>
+      <button id="buildNamesBtn" class="btn primary wide">Continue</button>
+    </div>
+
+    <div id="namesPanel" class="panel hidden">
+      <h3>Step 2 — Names &amp; Groups</h3>
+      <div id="nameInputs" class="name-grid"></div>
+
+      <label class="field">
+        <span>Number of players per group (team)</span>
+        <input id="perTeamInput" type="number" min="2" max="12" step="1" value="4">
+      </label>
+      <p class="hint" id="traitorHint"></p>
+
+      <button id="startGameBtn" class="btn primary wide">Start Game</button>
+    </div>
+
+    <p id="setupError" class="error"></p>
+  </section>
+
+  <!-- ============ REVEAL ============ -->
+  <section id="revealScreen" class="hidden">
+    <div class="panel reveal-wrap">
+      <div class="reveal-progress" id="revealProgress"></div>
+
+      <p class="reveal-prompt" id="revealPrompt"></p>
+
+      <button id="revealBtn" class="btn primary">Reveal Character</button>
+
+      <div id="revealCard" class="id-card hidden">
+        <p class="card-name" id="cardName"></p>
+        <p class="card-team" id="cardTeam"></p>
+        <p class="card-role" id="cardRole"></p>
+        <p class="card-desc" id="cardDesc"></p>
+      </div>
+
+      <div style="margin-top:22px;">
+        <button id="nextRevealBtn" class="btn hidden">Hide &amp; Pass to Next Player</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="gameScreen" class="hidden">
+    <div class="topbar">
+      <div class="round-box">Round <span id="roundNum">1</span> / 10</div>
+      <div class="score-box red">RED <span id="redScore">0</span></div>
+      <div class="score-box blue">BLUE <span id="blueScore">0</span></div>
+    </div>
+
+    <div class="teams">
+      <div class="team-card red" id="redCard">
+        <h3>RED TEAM</h3>
+        <ul id="redList"></ul>
+      </div>
+      <div class="team-card blue" id="blueCard">
+        <h3>BLUE TEAM</h3>
+        <ul id="blueList"></ul>
+      </div>
+    </div>
+
+    <div id="actionArea" class="action-area"></div>
+  </section>
+
+</div>
+
+<div id="overlay" class="hidden"></div>
+
+<script>
+/* =====================================================================
+   GrammarMafia  —  main script
+   ===================================================================== */
+
+/* ---------------------- Question bank (Family & Friends 4 level) ---- */
+const QUESTIONS = [
+  { q: "Yesterday we ___ to the beach with our family.", options: ["go","went","gone","going"], answer: 1 },
+  { q: "She is ___ than her brother.", options: ["tall","taller","tallest","more tall"], answer: 1 },
+  { q: "This is the ___ book in the library.", options: ["interesting","more interesting","most interesting","interestingest"], answer: 2 },
+  { q: "I ___ my homework already.", options: ["finish","finished","have finished","finishing"], answer: 2 },
+  { q: "Look at those clouds! It ___ rain.", options: ["is going to","goes","went","going to"], answer: 0 },
+  { q: "You ___ run in the corridor. It's dangerous.", options: ["must","mustn't","can","should"], answer: 1 },
+  { q: "Tom ___ football every Saturday morning.", options: ["play","plays","playing","played"], answer: 1 },
+  { q: "What ___ you do last weekend?", options: ["do","does","did","are"], answer: 2 },
+  { q: "My sister is very good ___ maths.", options: ["in","at","on","for"], answer: 1 },
+  { q: "There ___ some milk in the fridge.", options: ["is","are","have","be"], answer: 0 },
+  { q: "I'm hungry. I ___ a sandwich.", options: ["will make","made","making","have made"], answer: 0 },
+  { q: "She hasn't finished her homework ___.", options: ["already","yet","just","ever"], answer: 1 },
+  { q: "We have lived in this city ___ 2010.", options: ["for","since","from","at"], answer: 1 },
+  { q: "The film was ___ than I expected.", options: ["good","better","best","more good"], answer: 1 },
+  { q: "If it rains tomorrow, we ___ at home.", options: ["stay","stayed","will stay","staying"], answer: 2 },
+  { q: "He is the ___ boy in our class.", options: ["tall","taller","tallest","most tall"], answer: 2 },
+  { q: "I ___ to London last year.", options: ["go","went","have gone","going"], answer: 1 },
+  { q: "Have you ever ___ a horse?", options: ["ride","rode","ridden","riding"], answer: 2 },
+  { q: "She speaks English very ___.", options: ["good","well","better","nice"], answer: 1 },
+  { q: "The children ___ playing in the garden right now.", options: ["is","are","was","be"], answer: 1 },
+  { q: "My birthday is ___ 5th May.", options: ["in","on","at","from"], answer: 1 },
+  { q: "I was born ___ 2005.", options: ["in","on","at","since"], answer: 0 },
+  { q: "There aren't ___ apples left in the bowl.", options: ["some","any","much","a"], answer: 1 },
+  { q: "How ___ sugar do you want in your tea?", options: ["many","much","some","any"], answer: 1 },
+  { q: "How ___ eggs are there in the box?", options: ["many","much","any","some"], answer: 0 },
+  { q: "This bag isn't yours. It's ___.", options: ["my","mine","me","I"], answer: 1 },
+  { q: "He didn't ___ to school yesterday because he was ill.", options: ["went","go","going","goes"], answer: 1 },
+  { q: "They ___ a new car last month.", options: ["buy","bought","buying","have bought"], answer: 1 },
+  { q: "I think it ___ tomorrow.", options: ["snows","snowed","will snow","snowing"], answer: 2 },
+  { q: "She is the girl ___ won the singing competition.", options: ["which","who","whose","where"], answer: 1 },
+  { q: "He is interested ___ music.", options: ["on","in","at","for"], answer: 1 },
+  { q: "You should ___ your teeth twice a day.", options: ["brush","brushing","brushed","to brush"], answer: 0 },
+  { q: "I've got a headache. You ___ take an aspirin.", options: ["should","shouldn't","mustn't","don't"], answer: 0 },
+  { q: "Look! The baby ___.", options: ["sleeps","is sleeping","slept","sleep"], answer: 1 },
+  { q: "We ___ visit our grandma next Sunday.", options: ["are going to","went","go","were"], answer: 0 },
+  { q: "It's the ___ film I have ever seen.", options: ["good","better","best","well"], answer: 2 },
+  { q: "She ___ swim when she was five years old.", options: ["can","could","must","should"], answer: 1 },
+  { q: "I ___ like to be a doctor when I grow up.", options: ["will","would","am","do"], answer: 1 },
+  { q: "The cat is ___ the table.", options: ["under","of","with","from"], answer: 0 },
+  { q: "He runs ___ than me.", options: ["fast","faster","fastest","more fast"], answer: 1 },
+  { q: "Did you ___ the film last night?", options: ["saw","seen","see","seeing"], answer: 2 },
+  { q: "There ___ a lot of people at the party yesterday.", options: ["was","were","is","are"], answer: 1 },
+  { q: "She's got ___ apple in her bag.", options: ["a","an","the","any"], answer: 1 },
+  { q: "We must ___ our homework before dinner.", options: ["finish","finishing","finished","to finish"], answer: 0 },
+  { q: "___ you like some juice?", options: ["Do","Would","Are","Will"], answer: 1 },
+  { q: "They ___ TV when the phone rang.", options: ["watch","watched","were watching","are watching"], answer: 2 },
+  { q: "My brother is afraid ___ dogs.", options: ["of","from","at","in"], answer: 0 },
+  { q: "This is ___ house. We live here.", options: ["us","our","ours","we"], answer: 1 },
+  { q: "He hasn't got ___ money.", options: ["many","much","a lot","some"], answer: 1 }
+];
+
+/* ---------------------- Helpers ------------------------------------- */
+const $ = id => document.getElementById(id);
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function other(t){ return t === 'red' ? 'blue' : 'red'; }
+function teamLabel(t){ return t === 'red' ? 'RED' : 'BLUE'; }
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+/* ---------------------- State --------------------------------------- */
+const MAX_ROUNDS = 10;
+const state = {
+  players: [],
+  perTeam: 0,
+  round: 1,
+  turnIndex: 0,          // 0 = first turn of the round, 1 = second turn
+  roundStarter: 'blue',  // which team starts the current round
+  turnTeam: 'blue',
+  scores: { red: 0, blue: 0 },
+  question: null,
+  phase: 'idle',         // idle | question | answered | suspect | guess | guessResult | gameover
+  revealOrder: [],
+  revealIndex: 0,
+  revealed: false,
+  lastAnswerCorrect: false,
+  lastGuess: null
+};
+let usedQuestions = new Set();
+
+/* =====================================================================
+   SETUP SCREEN
+   ===================================================================== */
+$('buildNamesBtn').addEventListener('click', () => {
+  const err = $('setupError');
+  err.textContent = '';
+  const count = parseInt($('playerCount').value, 10);
+
+  if (!Number.isInteger(count) || count < 4 || count > 24){
+    err.textContent = 'Please enter a number of players between 4 and 24.';
+    return;
+  }
+  if (count % 2 !== 0){
+    err.textContent = 'The total number of players must be an even number.';
+    return;
+  }
+
+  const grid = $('nameInputs');
+  grid.innerHTML = '';
+  for (let i = 0; i < count; i++){
+    const label = document.createElement('label');
+    label.className = 'field';
+    const span = document.createElement('span');
+    span.textContent = 'Player ' + (i + 1);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'name-input';
+    input.placeholder = 'Name ' + (i + 1);
+    input.maxLength = 18;
+    label.appendChild(span);
+    label.appendChild(input);
+    grid.appendChild(label);
+  }
+
+  $('perTeamInput').value = count / 2;
+  $('namesPanel').classList.remove('hidden');
+  updateTraitorHint();
+  $('nameInputs').querySelector('.name-input').focus();
+});
+
+$('perTeamInput').addEventListener('input', updateTraitorHint);
+
+function updateTraitorHint(){
+  const perTeam = parseInt($('perTeamInput').value, 10);
+  const hint = $('traitorHint');
+  if (!Number.isInteger(perTeam) || perTeam < 1){
+    hint.textContent = '';
+    return;
+  }
+  const t = perTeam > 5 ? 2 : 1;
+  hint.textContent = 'Each team will have ' + t + ' traitor' + (t > 1 ? 's' : '') +
+                     ' (' + (t * 2) + ' traitors in total).';
+}
+
+$('startGameBtn').addEventListener('click', () => {
+  const err = $('setupError');
+  err.textContent = '';
+
+  const inputs = Array.from(document.querySelectorAll('.name-input'));
+  if (inputs.length === 0){
+    err.textContent = 'Please set the number of players first.';
+    return;
+  }
+
+  const names = inputs.map(i => i.value.trim());
+  if (names.some(n => n === '')){
+    err.textContent = 'Please enter a name for every player.';
+    return;
+  }
+  const lower = names.map(n => n.toLowerCase());
+  if (new Set(lower).size !== lower.length){
+    err.textContent = 'Player names must be different from each other.';
+    return;
+  }
+
+  const perTeam = parseInt($('perTeamInput').value, 10);
+  if (!Number.isInteger(perTeam) || perTeam < 2){
+    err.textContent = 'Players per group must be at least 2.';
+    return;
+  }
+  if (perTeam * 2 !== names.length){
+    err.textContent = 'With ' + names.length + ' players, each group must have exactly ' +
+                      (names.length / 2) + ' players.';
+    return;
+  }
+
+  buildGame(names, perTeam);
+});
+
+/* =====================================================================
+   BUILD THE GAME
+   ===================================================================== */
+function buildGame(names, perTeam){
+  // 1. create players
+  const players = names.map((name, i) => ({
+    id: i, name: name, team: null, isTraitor: false, eliminated: false
+  }));
+
+  // 2. randomly split into two equal teams
+  const shuffled = shuffle(players.slice());
+  const reds  = shuffled.slice(0, perTeam);
+  const blues = shuffled.slice(perTeam, perTeam * 2);
+  reds.forEach(p => p.team = 'red');
+  blues.forEach(p => p.team = 'blue');
+
+  // 3. assign traitors (2 if the group has more than 5 players, otherwise 1)
+  const traitorCount = perTeam > 5 ? 2 : 1;
+  assignTraitors(reds, traitorCount);
+  assignTraitors(blues, traitorCount);
+
+  // 4. reset state
+  state.players = players;
+  state.perTeam = perTeam;
+  state.round = 1;
+  state.turnIndex = 0;
+  state.roundStarter = 'blue';
+  state.turnTeam = 'blue';
+  state.scores = { red: 0, blue: 0 };
+  state.question = null;
+  state.phase = 'idle';
+  state.lastGuess = null;
+  usedQuestions = new Set();
+
+  // 5. go to the reveal phase
+  state.revealOrder = shuffle(players.slice());
+  state.revealIndex = 0;
+  state.revealed = false;
+
+  showScreen('revealScreen');
+  renderReveal();
+}
+
+function assignTraitors(teamArray, count){
+  const pool = shuffle(teamArray.slice());
+  for (let i = 0; i < count && i < pool.length; i++){
+    pool[i].isTraitor = true;
+  }
+}
+
+function showScreen(id){
+  ['setupScreen', 'revealScreen', 'gameScreen'].forEach(s => {
+    $(s).classList.toggle('hidden', s !== id);
+  });
+}
+
+/* =====================================================================
+   REVEAL PHASE
+   ===================================================================== */
+function renderReveal(){
+  const p = state.revealOrder[state.revealIndex];
+  if (!p) return;
+
+  $('revealProgress').textContent =
+    'Player ' + (state.revealIndex + 1) + ' of ' + state.revealOrder.length;
+
+  const promptEl = $('revealPrompt');
+  const revealBtn = $('revealBtn');
+  const card = $('revealCard');
+  const nextBtn = $('nextRevealBtn');
+
+  if (!state.revealed){
+    promptEl.innerHTML =
+      'Please, when <b>' + esc(p.name) + '</b> is here and no one is behind him, ' +
+      'tap &quot;Reveal Character&quot;.';
+    promptEl.classList.remove('hidden');
+    revealBtn.classList.remove('hidden');
+    card.classList.add('hidden');
+    nextBtn.classList.add('hidden');
+  } else {
+    promptEl.classList.add('hidden');
+    revealBtn.classList.add('hidden');
+    card.classList.remove('hidden');
+    nextBtn.classList.remove('hidden');
+
+    $('cardName').textContent = p.name;
+
+    const teamEl = $('cardTeam');
+    teamEl.textContent = p.team === 'red' ? 'RED TEAM' : 'BLUE TEAM';
+    teamEl.className = 'card-team ' + p.team;
+
+    const roleEl = $('cardRole');
+    const descEl = $('cardDesc');
+
+    if (p.isTraitor){
+      roleEl.textContent = 'TRAITOR';
+      roleEl.className = 'card-role traitor';
+      descEl.textContent =
+        'You are a TRAITOR. Keep it secret! Your mission is to make the OTHER team win — ' +
+        'not your own team.';
+    } else {
+      roleEl.textContent = 'LOYAL MEMBER';
+      roleEl.className = 'card-role loyal';
+      descEl.textContent =
+        'You are a LOYAL member. Help your own team win and try to find the traitors!';
+    }
+  }
+}
+
+$('revealBtn').addEventListener('click', () => {
+  state.revealed = true;
+  renderReveal();
+});
+
+$('nextRevealBtn').addEventListener('click', () => {
+  state.revealIndex++;
+  state.revealed = false;
+  if (state.revealIndex >= state.revealOrder.length){
+    startMainGame();
+  } else {
+    renderReveal();
+  }
+});
+
+function startMainGame(){
+  showScreen('gameScreen');
+  state.phase = 'idle';
+  render();
+}
+
+/* =====================================================================
+   MAIN GAME — rendering
+   ===================================================================== */
+function render(){
+  if (state.phase === 'gameover'){
+    renderBoard();
+    renderGameOver();
+    return;
+  }
+  renderBoard();
+  renderAction();
+}
+
+function renderBoard(){
+  $('roundNum').textContent = Math.min(state.round, MAX_ROUNDS);
+  $('redScore').textContent = state.scores.red;
+  $('blueScore').textContent = state.scores.blue;
+
+  const redCard = $('redCard');
+  const blueCard = $('blueCard');
+  redCard.classList.toggle('active', state.turnTeam === 'red');
+  blueCard.classList.toggle('active', state.turnTeam === 'blue');
+
+  fillTeamList($('redList'), 'red');
+  fillTeamList($('blueList'), 'blue');
+}
+
+function fillTeamList(ul, team){
+  ul.innerHTML = '';
+  state.players.filter(p => p.team === team).forEach(p => {
+    const li = document.createElement('li');
+    li.className = p.eliminated ? 'out' : '';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = p.name;
+    li.appendChild(nameSpan);
+    if (p.eliminated){
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = 'OUT';
+      li.appendChild(tag);
+    }
+    ul.appendChild(li);
+  });
+}
+
+function renderAction(){
+  const area = $('actionArea');
+  const team = state.turnTeam;
+  const teamName = teamLabel(team);
+
+  area.innerHTML = '';
+
+  /* ---------- IDLE ---------- */
+  if (state.phase === 'idle'){
+    const banner = document.createElement('div');
+    banner.className = 'turn-banner ' + team;
+    banner.innerHTML = 'It is the ' + teamName + ' team\'s turn.' +
+      '<small>Only the ' + teamName + ' team may answer this round.</small>';
+    area.appendChild(banner);
+
+    const btn = document.createElement('button');
+    btn.className = 'btn primary wide';
+    btn.textContent = state.turnIndex === 0 ? 'Start New Round' : 'Start Next Turn';
+    btn.onclick = startTurn;
+    area.appendChild(btn);
+    return;
+  }
+
+  /* ---------- QUESTION ---------- */
+  if (state.phase === 'question'){
+    const banner = document.createElement('div');
+    banner.className = 'turn-banner ' + team;
+    banner.innerHTML = 'It is the ' + teamName + ' team\'s turn — only the ' +
+      teamName + ' team may answer!';
+    area.appendChild(banner);
+
+    const box = document.createElement('div');
+    box.className = 'question-box';
+
+    const qText = document.createElement('p');
+    qText.className = 'q-text';
+    qText.textContent = state.question.q;
+    box.appendChild(qText);
+
+    const options = document.createElement('div');
+    options.className = 'options';
+    state.question.options.forEach((opt, i) => {
+      const b = document.createElement('button');
+      b.className = 'btn option';
+      b.textContent = opt;
+      b.onclick = () => answerQuestion(i);
+      options.appendChild(b);
+    });
+    box.appendChild(options);
+    area.appendChild(box);
+    return;
+  }
+
+  /* ---------- ANSWER RESULT ---------- */
+  if (state.phase === 'answered'){
+    const box = document.createElement('div');
+    box.className = 'result ' + (state.lastAnswerCorrect ? 'good' : 'bad');
+
+    if (state.lastAnswerCorrect){
+      box.innerHTML = 'Correct! The <b>' + teamName + '</b> team earns <b>1 point</b>.';
+    } else {
+      box.innerHTML = 'Wrong! No points for the ' + teamName + ' team.<br>' +
+        'The correct answer was: <b>' + esc(state.question.options[state.question.answer]) + '</b>';
+    }
+    area.appendChild(box);
+
+    const btn = document.createElement('button');
+    btn.className = 'btn primary wide';
+    btn.textContent = 'Continue';
+    btn.onclick = () => { state.phase = 'suspect'; render(); };
+    area.appendChild(btn);
+    return;
+  }
+
+  /* ---------- SUSPECT? ---------- */
+  if (state.phase === 'suspect'){
+    const banner = document.createElement('div');
+    banner.className = 'turn-banner ' + team;
+    banner.innerHTML = teamName + ' TEAM';
+    area.appendChild(banner);
+
+    const box = document.createElement('div');
+    box.className = 'question-box';
+
+    const p = document.createElement('p');
+    p.className = 'q-text';
+    p.textContent = 'Does anyone on the ' + teamName + ' team suspect a traitor?';
+    box.appendChild(p);
+
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    const noBtn = document.createElement('button');
+    noBtn.className = 'btn';
+    noBtn.textContent = 'No';
+    noBtn.onclick = () => endTurn();
+
+    const yesBtn = document.createElement('button');
+    yesBtn.className = 'btn primary';
+    yesBtn.textContent = 'Yes';
+    yesBtn.onclick = () => { state.phase = 'guess'; render(); };
+
+    row.appendChild(noBtn);
+    row.appendChild(yesBtn);
+    box.appendChild(row);
+    area.appendChild(box);
+    return;
+  }
+
+  /* ---------- GUESS ---------- */
+  if (state.phase === 'guess'){
+    const banner = document.createElement('div');
+    banner.className = 'turn-banner ' + team;
+    banner.innerHTML = teamName + ' TEAM — TRAITOR HUNT';
+    area.appendChild(banner);
+
+    const box = document.createElement('div');
+    box.className = 'question-box';
+
+    const p = document.createElement('p');
+    p.className = 'q-text';
+    p.textContent = 'Choose the player you think is a traitor:';
+    box.appendChild(p);
+
+    const alive = state.players.filter(pl => !pl.eliminated);
+    const grid = document.createElement('div');
+    grid.className = 'guess-grid';
+
+    alive.forEach(pl => {
+      const b = document.createElement('button');
+      b.className = 'btn guess-btn ' + pl.team;
+      b.innerHTML = esc(pl.name) + '<small>' + teamLabel(pl.team) + ' TEAM</small>';
+      b.onclick = () => makeGuess(pl.id);
+      grid.appendChild(b);
+    });
+    box.appendChild(grid);
+
+    const cancel = document.createElement('button');
+    cancel.className = 'btn ghost wide';
+    cancel.textContent = 'Cancel';
+    cancel.onclick = () => { state.phase = 'suspect'; render(); };
+    box.appendChild(cancel);
+
+    area.appendChild(box);
+    return;
+  }
+
+  /* ---------- GUESS RESULT ---------- */
+  if (state.phase === 'guessResult'){
+    const g = state.lastGuess;
+    const box = document.createElement('div');
+    box.className = 'result ' + (g.correct ? 'good' : 'bad');
+
+    if (g.correct){
+      box.innerHTML = 'Correct! <b>' + esc(g.name) + '</b> was a traitor and is out of the game.<br>' +
+        'The <b>' + teamName + '</b> team earns <b>3 points</b>.';
+    } else {
+      box.innerHTML = 'Wrong! <b>' + esc(g.name) + '</b> is not a traitor.<br>' +
+        'The <b>' + teamLabel(other(team)) + '</b> team earns <b>2 points</b>.';
+    }
+    area.appendChild(box);
+
+    const btn = document.createElement('button');
+    btn.className = 'btn primary wide';
+    btn.textContent = 'Continue';
+    btn.onclick = () => endTurn();
+    area.appendChild(btn);
+    return;
+  }
+}
+
+/* =====================================================================
+   MAIN GAME — logic
+   ===================================================================== */
+function pickQuestion(){
+  if (usedQuestions.size >= QUESTIONS.length){
+    usedQuestions = new Set();
+  }
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * QUESTIONS.length);
+  } while (usedQuestions.has(idx));
+  usedQuestions.add(idx);
+  return QUESTIONS[idx];
+}
+
+function startTurn(){
+  state.question = pickQuestion();
+  state.phase = 'question';
+  render();
+}
+
+function answerQuestion(optionIndex){
+  const correct = optionIndex === state.question.answer;
+  state.lastAnswerCorrect = correct;
+  if (correct){
+    state.scores[state.turnTeam] += 1;
+  }
+  state.phase = 'answered';
+  render();
+}
+
+function makeGuess(playerId){
+  const target = state.players.find(p => p.id === playerId);
+  if (!target) return;
+
+  if (target.isTraitor){
+    target.eliminated = true;
+    state.scores[state.turnTeam] += 3;
+    state.lastGuess = { correct: true, name: target.name };
+  } else {
+    state.scores[other(state.turnTeam)] += 2;
+    state.lastGuess = { correct: false, name: target.name };
+  }
+
+  state.phase = 'guessResult';
+  render();
+}
+
+function endTurn(){
+  if (state.turnIndex === 0){
+    // second turn of the same round -> the other team plays
+    state.turnIndex = 1;
+    state.turnTeam = other(state.roundStarter);
+  } else {
+    // round finished
+    state.round++;
+    if (state.round > MAX_ROUNDS){
+      state.phase = 'gameover';
+      render();
+      return;
+    }
+    state.roundStarter = other(state.roundStarter);
+    state.turnIndex = 0;
+    state.turnTeam = state.roundStarter;
+  }
+  state.question = null;
+  state.phase = 'idle';
+  render();
+}
+
+/* =====================================================================
+   GAME OVER
+   ===================================================================== */
+function renderGameOver(){
+  const overlay = $('overlay');
+  const r = state.scores.red;
+  const b = state.scores.blue;
+
+  let title, cls;
+  if (r > b){ title = 'RED TEAM WINS!'; cls = 'red'; }
+  else if (b > r){ title = 'BLUE TEAM WINS!'; cls = 'blue'; }
+  else { title = "IT'S A TIE!"; cls = 'tie'; }
+
+  overlay.innerHTML = '';
+  overlay.classList.remove('hidden');
+
+  const card = document.createElement('div');
+  card.className = 'overlay-card';
+
+  const h = document.createElement('h2');
+  h.className = cls;
+  h.textContent = title;
+  card.appendChild(h);
+
+  const sub = document.createElement('p');
+  sub.style.color = '#98a2c8';
+  sub.style.margin = '0';
+  sub.textContent = 'Final result after ' + MAX_ROUNDS + ' rounds';
+  card.appendChild(sub);
+
+  const scores = document.createElement('div');
+  scores.className = 'final-scores';
+  scores.innerHTML =
+    '<div class="red">RED<br><span style="font-size:1.9rem">' + r + '</span></div>' +
+    '<div class="blue">BLUE<br><span style="font-size:1.9rem">' + b + '</span></div>';
+  card.appendChild(scores);
+
+  const again = document.createElement('button');
+  again.className = 'btn primary wide';
+  again.textContent = 'Play Again';
+  again.onclick = () => location.reload();
+  card.appendChild(again);
+
+  overlay.appendChild(card);
+}
+</script>
+</body>
+</html>
